@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f3ee">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>祖母格鉤針設計器</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#292622;background:#f7f3ee}
+*{box-sizing:border-box} body{margin:0;padding:16px;background:#f7f3ee}
+main{max-width:720px;margin:auto}.toolbar,.panel,.saved{background:#fff;border:1px solid #ded8d1;border-radius:16px;padding:12px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,input{font:inherit;min-height:44px;border-radius:12px;border:1px solid #cfc7bf;background:#fff;padding:8px 12px}
+button.active,.primary{background:#775b4b;color:#fff;border-color:#775b4b}button{touch-action:manipulation}
+.palette{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.swatch{width:44px;height:44px;border-radius:50%;padding:0}
+.board{background:#fff;border-radius:16px;padding:10px;margin-bottom:12px;overflow:auto}.board svg{display:block;width:100%;min-width:286px;touch-action:none}
+.hint,.status{font-size:14px;color:#716b65;text-align:center;margin:8px 0 0}
+#doubleTools{display:none}.grow{flex:1;min-width:150px}.saved .row{justify-content:space-between}.center{text-align:center}.danger{color:#a33131}
+</style>
+</head>
+<body><main>
+<div class="toolbar"><div class="row">
+<button id="cellMode" class="active">填格子</button><button id="lineMode">單格線</button><button id="doubleMode">雙格線</button><button id="undo">↶ 復原</button><button id="clear">清空</button>
+</div></div>
+<div id="doubleTools" class="panel"><b>雙格線編輯</b><div class="row" style="margin-top:8px">
+<button id="lineA" class="active">線 A</button><button id="lineB">線 B</button>
+</div><div class="hint">選 A 或 B，再點某段格線，可分別設定兩條線的顏色。</div></div>
+<div class="panel"><div class="row" style="justify-content:space-between"><b id="modeLabel">格子顏色</b><label>自訂 <input id="picker" type="color" value="#e76f51"></label></div><div id="palette" class="palette"></div></div>
+<div class="board"><svg id="board" viewBox="-10 -10 570 570" aria-label="11乘11祖母格"></svg><div id="hint" class="hint">點格子上色</div></div>
+<div class="panel"><div class="row"><input id="name" class="grow" value="我的祖母格" aria-label="作品名稱"><button id="save" class="primary">儲存設計</button></div></div>
+<div class="saved"><div class="row"><button id="prev">←</button><div class="center"><b id="savedTitle">尚未儲存作品</b><div id="counter" class="hint">0 / 0</div></div><button id="next">→</button></div>
+<div class="row" style="justify-content:center;margin-top:10px"><button id="newDesign">＋ 新作品</button><button id="load">載入</button><button id="deleteDesign" class="danger">刪除</button></div></div>
+<div id="status" class="status"></div>
+</main>
+<script>
+(()=>{const N=11,S=50,NS='http://www.w3.org/2000/svg',$=s=>document.querySelector(s),svg=$('#board');
+const colors=['#ffffff','#111827','#e76f51','#f4a261','#e9c46a','#84a98c','#2a9d8f','#4f86c6','#7b6fd0','#d16ba5'];
+let mode='cell',sub='A',color='#e76f51',cells=Array(N*N).fill('#ffffff'),history=[],browse=-1;
+const mkLines=n=>Array.from({length:n},()=>({double:false,a:'#9ca3af',b:'#9ca3af'}));
+let v=mkLines((N+1)*N),h=mkLines((N+1)*N);
+let saved=JSON.parse(localStorage.getItem('crochetSaved')||'[]');
+const clone=()=>({cells:[...cells],v:v.map(x=>({...x})),h:h.map(x=>({...x}))});
+const push=()=>{history.push(clone());if(history.length>50)history.shift()};
+const persist=()=>localStorage.setItem('crochetSaved',JSON.stringify(saved));
+function E(tag,a){const e=document.createElementNS(NS,tag);for(const[k,z]of Object.entries(a))e.setAttribute(k,z);return e}
+function seg(x1,y1,x2,y2,o,kind,i){const vert=x1===x2,off=4;
+ if(o.double){svg.append(E('line',{x1:vert?x1-off:x1,y1:vert?y1:y1-off,x2:vert?x2-off:x2,y2:vert?y2:y2-off,stroke:o.a,'stroke-width':4,'stroke-linecap':'round','pointer-events':'none'}),E('line',{x1:vert?x1+off:x1,y1:vert?y1:y1+off,x2:vert?x2+off:x2,y2:vert?y2:y2+off,stroke:o.b,'stroke-width':4,'stroke-linecap':'round','pointer-events':'none'}))}
+ else svg.append(E('line',{x1,y1,x2,y2,stroke:o.a,'stroke-width':5,'stroke-linecap':'round','pointer-events':'none'}));
+ if(mode!=='cell'){let hit=E('line',{x1,y1,x2,y2,stroke:'transparent','stroke-width':24,'pointer-events':'stroke'});hit.dataset[kind]=i;svg.append(hit)}
+}
+function draw(){svg.replaceChildren();for(let r=0;r<N;r++)for(let c=0;c<N;c++){let q=E('rect',{x:c*S,y:r*S,width:S,height:S,fill:cells[r*N+c]});if(mode==='cell')q.dataset.cell=r*N+c;svg.append(q)}
+ for(let c=0;c<=N;c++)for(let r=0;r<N;r++)seg(c*S,r*S,c*S,(r+1)*S,v[c*N+r],'v',c*N+r);
+ for(let r=0;r<=N;r++)for(let c=0;c<N;c++)seg(c*S,r*S,(c+1)*S,r*S,h[r*N+c],'h',r*N+c)}
+function restore(x){cells=[...x.cells];v=x.v.map(q=>({...q}));h=x.h.map(q=>({...q}));draw()}
+svg.addEventListener('pointerdown',e=>{const t=e.target;if(mode==='cell'&&t.dataset.cell!==undefined){push();cells[+t.dataset.cell]=color;draw();return}
+ let arr,idx;if(t.dataset.v!==undefined){arr=v;idx=+t.dataset.v}else if(t.dataset.h!==undefined){arr=h;idx=+t.dataset.h}else return;push();let q=arr[idx];if(mode==='line'){q.double=false;q.a=color}else{q.double=true;q[sub.toLowerCase()]=color}draw()});
+colors.forEach(c=>{let b=document.createElement('button');b.className='swatch';b.style.background=c;b.setAttribute('aria-label','顏色 '+c);b.onclick=()=>{color=c;$('#picker').value=c};$('#palette').append(b)});
+$('#picker').oninput=e=>color=e.target.value;
+function setMode(m){mode=m;$('#doubleTools').style.display=m==='double'?'block':'none';$('#modeLabel').textContent=m==='cell'?'格子顏色':m==='line'?'單格線顏色':'雙格線 '+sub+' 顏色';$('#hint').textContent=m==='cell'?'點格子上色':m==='line'?'點某段格線改成單線並上色':'點某段格線變成雙線；目前編輯線 '+sub;['cell','line','double'].forEach(x=>$('#'+x+'Mode').classList.toggle('active',m===x));draw()}
+$('#cellMode').onclick=()=>setMode('cell');$('#lineMode').onclick=()=>setMode('line');$('#doubleMode').onclick=()=>setMode('double');
+function setSub(s){sub=s;$('#lineA').classList.toggle('active',s==='A');$('#lineB').classList.toggle('active',s==='B');setMode('double')} $('#lineA').onclick=()=>setSub('A');$('#lineB').onclick=()=>setSub('B');
+$('#undo').onclick=()=>{let x=history.pop();if(x)restore(x)};
+$('#clear').onclick=()=>{push();cells=Array(N*N).fill('#ffffff');v=mkLines((N+1)*N);h=mkLines((N+1)*N);draw()};
+function browser(){if(!saved.length){browse=-1;$('#savedTitle').textContent='尚未儲存作品';$('#counter').textContent='0 / 0';return}if(browse<0)browse=0;if(browse>=saved.length)browse=saved.length-1;$('#savedTitle').textContent=saved[browse].name;$('#counter').textContent=(browse+1)+' / '+saved.length}
+$('#save').onclick=()=>{let name=$('#name').value.trim()||'未命名作品';saved.push({name,...clone()});persist();browse=saved.length-1;browser();$('#status').textContent='已永久儲存「'+name+'」'};
+$('#prev').onclick=()=>{if(saved.length){browse=(browse-1+saved.length)%saved.length;browser()}};$('#next').onclick=()=>{if(saved.length){browse=(browse+1)%saved.length;browser()}};
+$('#load').onclick=()=>{if(browse>=0){push();restore(saved[browse]);$('#name').value=saved[browse].name;$('#status').textContent='已載入作品'}};
+$('#deleteDesign').onclick=()=>{if(browse>=0){saved.splice(browse,1);persist();if(browse>=saved.length)browse=saved.length-1;browser();$('#status').textContent='已刪除作品'}};
+$('#newDesign').onclick=()=>{push();cells=Array(N*N).fill('#ffffff');v=mkLines((N+1)*N);h=mkLines((N+1)*N);$('#name').value='我的祖母格';draw()};
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});draw();browser()})();
+</script></body></html>

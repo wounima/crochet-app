@@ -41,7 +41,7 @@ let mode='cell',sub='A',color='#e76f51',cells=[],history=[],browse=-1,editing=-1
 const mkLines=(n)=>Array.from({length:n},()=>({double:false,a:'#9ca3af',b:'#9ca3af'}));
 let v=[],h=[];
 let saved=JSON.parse(localStorage.getItem('crochetSaved')||'[]');
-function blank(pattern=true){cells=Array(R*C).fill('#ffffff');v=mkLines((C+1)*R);h=mkLines((R+1)*C);if(pattern){for(let r=0;r<R;r++)for(let c=0;c<C;c++)if((r+c)%2===0)cells[r*C+c]=color;const g='#9ca3af';cells[0]=g;cells[C-1]=g;cells[(R-1)*C]=g;cells[R*C-1]=g}}
+function blank(pattern=true){cells=Array(R*C).fill('#ffffff');v=mkLines((C+1)*R);h=mkLines((R+1)*C);if(pattern){for(let r=0;r<R;r++)for(let c=0;c<C;c++)if((r+c)%2===0)cells[r*C+c]='#9ca3af';const g='#9ca3af';cells[0]=g;cells[C-1]=g;cells[(R-1)*C]=g;cells[R*C-1]=g}}
 function clone(){return {rows:R,cols:C,cells:[...cells],v:v.map(x=>({...x})),h:h.map(x=>({...x}))}}
 const push=()=>{history.push(clone());if(history.length>50)history.shift()};
 const persist=()=>localStorage.setItem('crochetSaved',JSON.stringify(saved));

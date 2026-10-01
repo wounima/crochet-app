@@ -27,7 +27,7 @@ button.active,.primary{background:#775b4b;color:#fff;border-color:#775b4b}button
 <button id="lineA" class="active">線 A</button><button id="lineB">線 B</button>
 </div><div class="hint">選 A 或 B，再點某段格線，可分別設定兩條線的顏色。</div></div>
 <div class="panel"><div class="row" style="justify-content:space-between"><b id="modeLabel">格子顏色</b><label>自訂 <input id="picker" type="color" value="#e76f51"></label></div><div id="palette" class="palette"></div></div>
-<div class="panel"><div class="row"><label>橫向格數 <input id="cols" type="number" min="2" max="50" value="11" style="width:80px"></label><label>直向格數 <input id="rows" type="number" min="2" max="50" value="11" style="width:80px"></label><button id="applySize">建立格子</button></div><div class="hint">建立新尺寸時：四個角落預設灰色，其餘格子每隔一格交錯填入目前選擇的顏色。</div></div>
+<div class="panel"><div class="row"><label>橫向格數 <input id="cols" type="number" min="2" max="50" value="11" style="width:80px"></label><label>直向格數 <input id="rows" type="number" min="2" max="50" value="11" style="width:80px"></label><label>左上角 <select id="patternStart" style="font:inherit;min-height:44px;border-radius:12px;border:1px solid #cfc7bf;background:#fff;padding:8px 12px"><option value="gray">灰色</option><option value="white">不上色</option></select></label><button id="applySize">建立格子</button></div><div class="hint">新作品會以灰色／白色交錯排列；可選擇左上角從灰色或不上色開始。</div></div>
 <div class="board"><svg id="board" viewBox="-10 -10 570 570" aria-label="祖母格"></svg><div id="hint" class="hint">點格子上色</div></div>
 <div class="panel"><div class="row"><input id="name" class="grow" value="我的祖母格" aria-label="作品名稱"><button id="save" class="primary">儲存設計</button></div></div>
 <div class="saved"><div class="row"><button id="prev">←</button><div class="center"><b id="savedTitle">尚未儲存作品</b><div id="counter" class="hint">0 / 0</div></div><button id="next">→</button></div>
@@ -42,7 +42,7 @@ let mode='cell',sub='A',color='#e76f51',cells=[],history=[],browse=-1,editing=-1
 const mkLines=(n)=>Array.from({length:n},()=>({double:false,a:'#9ca3af',b:'#9ca3af'}));
 let v=[],h=[];
 let saved=JSON.parse(localStorage.getItem('crochetSaved')||'[]');
-function blank(pattern=true){cells=Array(R*C).fill('#ffffff');v=mkLines((C+1)*R);h=mkLines((R+1)*C);if(pattern){for(let r=0;r<R;r++)for(let c=0;c<C;c++)if((r+c)%2===0)cells[r*C+c]='#9ca3af'}}
+function blank(pattern=true){cells=Array(R*C).fill('#ffffff');v=mkLines((C+1)*R);h=mkLines((R+1)*C);if(pattern){const grayFirst=$('#patternStart').value==='gray';for(let r=0;r<R;r++)for(let c=0;c<C;c++){const even=(r+c)%2===0;if(even===grayFirst)cells[r*C+c]='#9ca3af'}}}
 function clone(){return {rows:R,cols:C,cells:[...cells],v:v.map(x=>({...x})),h:h.map(x=>({...x}))}}
 const push=()=>{history.push(clone());if(history.length>50)history.shift()};
 const persist=()=>localStorage.setItem('crochetSaved',JSON.stringify(saved));

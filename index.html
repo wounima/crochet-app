@@ -32,6 +32,7 @@ button.active,.primary{background:#775b4b;color:#fff;border-color:#775b4b}button
 <div class="panel"><div class="row"><input id="name" class="grow" value="我的祖母格" aria-label="作品名稱"><button id="save" class="primary">儲存設計</button></div></div>
 <div class="saved"><div class="row"><button id="prev">←</button><div class="center"><b id="savedTitle">尚未儲存作品</b><div id="counter" class="hint">0 / 0</div></div><button id="next">→</button></div>
 <div class="row" style="justify-content:center;margin-top:10px"><button id="newDesign">＋ 新作品</button><button id="load">載入</button><button id="deleteDesign" class="danger">刪除</button></div></div>
+<div class="panel"><b>作品備份</b><div class="row" style="margin-top:8px;justify-content:center"><button id="backupAll">📤 備份全部作品</button><button id="restoreAll">📥 還原備份</button><input id="restoreFile" type="file" accept="application/json,.json" style="display:none"></div><div class="hint">建議每次更新 App 前先備份一次；備份檔可存到「檔案」或 iCloud Drive。</div></div>
 <div id="status" class="status"></div>
 </main>
 <script>
@@ -41,7 +42,7 @@ let mode='cell',sub='A',color='#e76f51',cells=[],history=[],browse=-1,editing=-1
 const mkLines=(n)=>Array.from({length:n},()=>({double:false,a:'#9ca3af',b:'#9ca3af'}));
 let v=[],h=[];
 let saved=JSON.parse(localStorage.getItem('crochetSaved')||'[]');
-function blank(pattern=true){cells=Array(R*C).fill('#ffffff');v=mkLines((C+1)*R);h=mkLines((R+1)*C);if(pattern){for(let r=0;r<R;r++)for(let c=0;c<C;c++)if((r+c)%2===0)cells[r*C+c]='#9ca3af';const g='#9ca3af';cells[0]=g;cells[C-1]=g;cells[(R-1)*C]=g;cells[R*C-1]=g}}
+function blank(pattern=true){cells=Array(R*C).fill('#ffffff');v=mkLines((C+1)*R);h=mkLines((R+1)*C);if(pattern){for(let r=0;r<R;r++)for(let c=0;c<C;c++)if((r+c)%2===0)cells[r*C+c]='#9ca3af'}}
 function clone(){return {rows:R,cols:C,cells:[...cells],v:v.map(x=>({...x})),h:h.map(x=>({...x}))}}
 const push=()=>{history.push(clone());if(history.length>50)history.shift()};
 const persist=()=>localStorage.setItem('crochetSaved',JSON.stringify(saved));
@@ -61,6 +62,9 @@ $('#prev').onclick=()=>{if(saved.length){browse=(browse-1+saved.length)%saved.le
 $('#deleteDesign').onclick=()=>{if(browse>=0){saved.splice(browse,1);persist();if(browse>=saved.length)browse=saved.length-1;editing=-1;browser(saved.length>0);$('#status').textContent='已刪除作品'}};
 function newDesign(){R=Math.max(2,Math.min(50,+$('#rows').value||11));C=Math.max(2,Math.min(50,+$('#cols').value||11));$('#rows').value=R;$('#cols').value=C;push();blank(true);editing=-1;$('#name').value='我的祖母格';draw();$('#status').textContent=`已建立 ${R} × ${C} 新作品`}
 $('#newDesign').onclick=newDesign;$('#applySize').onclick=newDesign;
+$('#backupAll').onclick=()=>{try{const data={app:'crochet-app',version:1,createdAt:new Date().toISOString(),saved};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const d=new Date(),pad=n=>String(n).padStart(2,'0');a.href=url;a.download=`crochet-backup-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);$('#status').textContent=`已建立備份：${saved.length} 個作品`;}catch(e){$('#status').textContent='備份失敗，請再試一次';}};
+$('#restoreAll').onclick=()=>$('#restoreFile').click();
+$('#restoreFile').onchange=async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const data=JSON.parse(await f.text());const incoming=Array.isArray(data)?data:data.saved;if(!Array.isArray(incoming))throw new Error('bad backup');const normalized=incoming.map(x=>({...x,rows:x.rows||11,cols:x.cols||11}));if(saved.length&&!confirm(`目前有 ${saved.length} 個作品。\n\n按「確定」：保留目前作品，並加入備份中的 ${normalized.length} 個作品。\n按「取消」：不還原。`)){e.target.value='';return;}saved=[...saved,...normalized];persist();browse=saved.length?Math.max(0,saved.length-normalized.length):-1;editing=-1;browser(saved.length>0);$('#status').textContent=`已還原 ${normalized.length} 個作品；目前共 ${saved.length} 個作品`;}catch(err){$('#status').textContent='這個檔案不是有效的祖母格備份';}e.target.value='';};
 // Upgrade old 11x11 saves so they remain loadable.
 saved=saved.map(x=>({...x,rows:x.rows||11,cols:x.cols||11}));persist();blank(true);if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});draw();browser()})();
 </script></body></html>
